@@ -1,0 +1,5 @@
+ipython*
+*.c
+*.so
+*.pyc
+*.fits
