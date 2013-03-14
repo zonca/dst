@@ -38,3 +38,9 @@ in order to support other data format it is possible to modify `dst_io.read_data
 ## configuration file format
 
 see comments in the example configuration file `ch6_256.cfg`
+
+## source code 
+
+* source code is released under GPLv3
+* source repository: http://github.com/zonca/dst
+* author: Andrea Zonca, http://about.me/andreazonca
