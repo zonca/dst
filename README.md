@@ -39,8 +39,18 @@ in order to support other data format it is possible to modify `dst_io.read_data
 
 see comments in the example configuration file `ch6_256.cfg`
 
+## related scientific publication
+
+Scientific paper: "Destriping CMB polarimeter data", http://
+
+Destriped maps from the B-Machine 40GHz polarimeter are available on
+figshare at: http://dx.doi.org/10.6084/m9.figshare.644507
+
 ## source code 
 
 * source code is released under GPLv3
 * source repository: http://github.com/zonca/dst
 * author: Andrea Zonca, http://about.me/andreazonca
+
+If you use this software or part of it for a scientific publication,
+you are required to share your code under GPLv3 and cite the above paper.
