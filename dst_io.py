@@ -11,7 +11,7 @@ def get_qu_weights(pa):
     u_channel_w = {'Q': -sin2pa, 'U': cos2pa}
     return q_channel_w, u_channel_w
 
-def read_data(filename, i_from, i_to, nside, BaselineLength, comm, pol=False, maskdestripe=True):
+def read_data(filename, i_from, i_to, nside, BaselineLength, comm, pol=False, maskdestripe="mask.fits"):
     """Read data serially with h5py
 
     a cython version using HDF5 parallel I/O is available, but complicated to build
@@ -24,7 +24,7 @@ def read_data(filename, i_from, i_to, nside, BaselineLength, comm, pol=False, ma
     pix = hp.ang2pix(nside,data['THETA'],data['PHI'])
 
     if maskdestripe:
-        mask = hp.ud_grade(hp.read_map("mask.fits"), nside)
+        mask = hp.ud_grade(hp.read_map(maskdestripe), nside)
         data["FLAG"][mask[pix] == 0] = 1
 
     good_data = data["FLAG"] == 0

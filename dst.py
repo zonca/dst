@@ -34,6 +34,7 @@ if len(sys.argv) != 2:
 config.read(sys.argv[1])
 
 input_filename = config.get("dst", "input_filename")
+mask_filename = config.get("dst", "mask_filename")
 sampling_frequency = config.getfloat("dst", "sampling_frequency")
 bin_filtered = config.getboolean("dst", "bin_filtered")
 nside = config.getint("dst", "nside")
@@ -70,7 +71,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
     pix, data, BaselineLengths = read_data(input_filename, 
                                            i_from + comm.maps["bas"].MinMyGID()*BaselineLength, 
                                            i_from + (comm.maps["bas"].MaxMyGID()+ 1)*BaselineLength, 
-                                           nside, BaselineLength, comm, pol=pol, maskdestripe=True)
+                                           nside, BaselineLength, comm, pol=pol, maskdestripe=mask_filename)
 
     # replace the measured signal with a simulated signal
     if scan_gal_input_map:
