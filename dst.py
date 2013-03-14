@@ -17,7 +17,6 @@ from accumulate import accumulate
 import h5py
 import healpy as hp
 from PyTrilinos import Epetra, AztecOO
-from scipy import signal
 import logging as l
 l.root.level = l.DEBUG
 
@@ -115,6 +114,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         # bin filtered data
         if bin_filtered:
+            from scipy import signal
             dataf = {}
             filter_minutes = 60
             filter_hz = 1 / (filter_minutes * 60.)
