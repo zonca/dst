@@ -45,7 +45,7 @@ if comm.MyPID == 0:
 
 # define data range
 i_from = 0 
-length = len(h5py.File(input_filename)['data'])
+length = len(h5py.File(input_filename, mode='r')['data'])
 # must be a multiple of baseline length
 length /= BaselineLength
 length *= BaselineLength
