@@ -1,8 +1,9 @@
 import logging as l
 import numpy as np
 from accumulate import accumulate
-from signalremove import signalremove
+from signalremove import signalremove, signalremovet
 from PyTrilinos import Epetra
+import timemonitor as tm
 
 def bin_map(pix, tod, tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=False):
 
@@ -14,7 +15,7 @@ def bin_map(pix, tod, tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=
     tmap_glob[hits_glob != 0] /= hits_glob[hits_glob != 0]
 
     if broadcast_locally:
-        comm.pix_global_to_local(tmap_glob, tmap_local)
+            comm.pix_global_to_local(tmap_glob, tmap_local)
 
 class TDestripeOperator(Epetra.Operator):
     """Temperature only destriping
@@ -36,11 +37,14 @@ class TDestripeOperator(Epetra.Operator):
         return self.__label
 
     def RealApply(self, x, y):
-        sig = np.repeat(x.array[0], self.BaselineLengths)
-        self.tmap_local[:]=0
-        bin_map(self.pix, sig, self.tmap_local, self.tmap_glob, self.hits_glob, self.comm, broadcast_locally=True)
-        sig -=  self.tmap_local[self.pix]
-        accumulate(sig, self.BaselineLengths, y.array[0])
+        with tm.TimeMonitor("Destriping Local Operations"):
+            sig = np.repeat(x.array[0], self.BaselineLengths)
+            self.tmap_local[:]=0
+        with tm.TimeMonitor("Destriping Comm Operations"):
+            bin_map(self.pix, sig, self.tmap_local, self.tmap_glob, self.hits_glob, self.comm, broadcast_locally=True)
+        with tm.TimeMonitor("Destriping Local Operations"):
+            signalremovet(sig, sig, self.tmap_local, self.pix)
+            accumulate(sig, self.BaselineLengths, y.array[0])
         return 0
 
     def Apply(self, x, y):
@@ -81,24 +85,28 @@ class QUDestripeOperator(TDestripeOperator):
     def RealApply(self, x, y):
         # baseline to tod
         sig = {}
-        sig['Q'] = np.repeat(x.array[0][:self.NumBaselines], self.BaselineLengths)
-        sig['U'] = np.repeat(x.array[0][self.NumBaselines:], self.BaselineLengths)
+        with tm.TimeMonitor("Destriping Local Operations"):
+            sig['Q'] = np.repeat(x.array[0][:self.NumBaselines], self.BaselineLengths)
+            sig['U'] = np.repeat(x.array[0][self.NumBaselines:], self.BaselineLengths)
         self.SignalRemove(sig)
         # tod to baseline
-        accumulate(sig['Q'], self.BaselineLengths, y.array[0][:self.NumBaselines])
-        accumulate(sig['U'], self.BaselineLengths, y.array[0][self.NumBaselines:])
+        with tm.TimeMonitor("Destriping Local Operations"):
+            accumulate(sig['Q'], self.BaselineLengths, y.array[0][:self.NumBaselines])
+            accumulate(sig['U'], self.BaselineLengths, y.array[0][self.NumBaselines:])
         return 0
 
     def SignalRemove(self, sig):
-        # bin maps
-        bin_map(self.pix, sig['Q']*self.q_channel_w['Q'] + sig['U']*self.u_channel_w['Q'], self.tmap_local, self.tmap_glob, self.hits_glob, self.comm, broadcast_locally=True)
-        bin_map(self.pix, sig['Q']*self.q_channel_w['U'] + sig['U']*self.u_channel_w['U'], self.umap_local, self.umap_glob, self.hits_glob, self.comm, broadcast_locally=True)
+        with tm.TimeMonitor("Destriping Comm Operations"):
+            # bin maps
+            bin_map(self.pix, sig['Q']*self.q_channel_w['Q'] + sig['U']*self.u_channel_w['Q'], self.tmap_local, self.tmap_glob, self.hits_glob, self.comm, broadcast_locally=True)
+            bin_map(self.pix, sig['Q']*self.q_channel_w['U'] + sig['U']*self.u_channel_w['U'], self.umap_local, self.umap_glob, self.hits_glob, self.comm, broadcast_locally=True)
         # signal remove
         #tmap_tod = self.tmap_local[pix]
         #umap_tod = self.umap_local[pix]
         #sig['Q'] -= tmap_tod * self.q_channel_w['Q'] + umap_tod * self.q_channel_w['U']
         #sig['U'] -= tmap_tod * self.u_channel_w['Q'] + umap_tod * self.u_channel_w['U']
-        signalremove(sig['Q'], sig['U'], self.tmap_local.array, self.umap_local.array, self.q_channel_w['Q'], self.q_channel_w['U'], self.u_channel_w['Q'], self.u_channel_w['U'], self.pix)
+        with tm.TimeMonitor("Destriping Local Operations"):
+            signalremove(sig['Q'], sig['U'], sig['Q'], sig['U'], self.tmap_local.array, self.umap_local.array, self.q_channel_w['Q'], self.q_channel_w['U'], self.u_channel_w['Q'], self.u_channel_w['U'], self.pix)
 
     def Label(self):
         return self.__label
@@ -157,7 +165,9 @@ class CommMetadata:
 
     def pix_local_to_global(self, localvector, globalvector):
         globalvector[:] = 0
-        globalvector.Export(localvector, self.exporter, Epetra.Add)
+        with tm.TimeMonitor("Comm loc->glob"):
+            globalvector.Export(localvector, self.exporter, Epetra.Add)
 
     def pix_global_to_local(self, globalvector, localvector):
-        localvector.Import(globalvector, self.exporter, Epetra.Insert)
+        with tm.TimeMonitor("Comm glob->loc"):
+            localvector.Import(globalvector, self.exporter, Epetra.Insert)

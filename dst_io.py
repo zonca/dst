@@ -3,6 +3,7 @@ from mpi4py import MPI
 import healpy as hp
 import numpy as np
 import logging as l
+import timemonitor as tm
 
 def get_qu_weights(pa):
     cos2pa = np.cos(pa)**2 - np.sin(pa)**2
@@ -45,9 +46,10 @@ def read_data(filename, i_from, i_to, nside, BaselineLength, comm, pol=False, ma
 
 def MPIwrite(filename, a, comm):
     """MPI I/O array write, using mpi4py"""
-    if comm.MyPID == 0:
-        l.info("Writing " + filename)
-    f = MPI.File.Open(MPI.COMM_WORLD, filename, 
-                      MPI.MODE_WRONLY | MPI.MODE_CREATE)
-    f.Write_ordered(a)
-    f.Close()
+    with tm.TimeMonitor("MPI Write"):
+        if comm.MyPID == 0:
+            l.info("Writing " + filename)
+        f = MPI.File.Open(MPI.COMM_WORLD, filename, 
+                          MPI.MODE_WRONLY | MPI.MODE_CREATE)
+        f.Write_ordered(a)
+        f.Close()
