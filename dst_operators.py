@@ -1,7 +1,7 @@
 import logging as l
 import numpy as np
 from accumulate import accumulate
-from signalremove import signalremove, signalremovet
+from signalremove import signalremovei, signalremoveti
 from PyTrilinos import Epetra
 import timemonitor as tm
 
@@ -43,7 +43,7 @@ class TDestripeOperator(Epetra.Operator):
         with tm.TimeMonitor("Destriping Comm Operations"):
             bin_map(self.pix, sig, self.tmap_local, self.tmap_glob, self.hits_glob, self.comm, broadcast_locally=True)
         with tm.TimeMonitor("Destriping Local Operations"):
-            signalremovet(sig, sig, self.tmap_local, self.pix)
+            signalremoveti(sig, self.tmap_local.array, self.pix)
             accumulate(sig, self.BaselineLengths, y.array[0])
         return 0
 
@@ -106,7 +106,7 @@ class QUDestripeOperator(TDestripeOperator):
         #sig['Q'] -= tmap_tod * self.q_channel_w['Q'] + umap_tod * self.q_channel_w['U']
         #sig['U'] -= tmap_tod * self.u_channel_w['Q'] + umap_tod * self.u_channel_w['U']
         with tm.TimeMonitor("Destriping Local Operations"):
-            signalremove(sig['Q'], sig['U'], sig['Q'], sig['U'], self.tmap_local.array, self.umap_local.array, self.q_channel_w['Q'], self.q_channel_w['U'], self.u_channel_w['Q'], self.u_channel_w['U'], self.pix)
+            signalremovei(sig['Q'], sig['U'], self.tmap_local.array, self.umap_local.array, self.q_channel_w['Q'], self.q_channel_w['U'], self.u_channel_w['Q'], self.u_channel_w['U'], self.pix)
 
     def Label(self):
         return self.__label

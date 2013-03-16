@@ -150,7 +150,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 'Q' : np.zeros(len(data['Q']), dtype=np.double),
                 'U' : np.zeros(len(data['U']), dtype=np.double),
                 }
-                signalremove(signal_removed['Q'], signal_removed['U'], sig['Q'], sig['U'], self.tmap_local.array, self.umap_local.array, self.q_channel_w['Q'], self.q_channel_w['U'], self.u_channel_w['Q'], self.u_channel_w['U'], pix)
+                signalremove(signal_removed['Q'], signal_removed['U'], data['Q'], data['U'], tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
 
                 assert len(BaselineLengths) == len(RHS.array[0][:NumBaselines])
                 accumulate(signal_removed['Q'], BaselineLengths, RHS.array[0][:NumBaselines])
