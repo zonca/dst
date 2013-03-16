@@ -42,8 +42,8 @@ sampling_frequency = config.getfloat("dst", "sampling_frequency")
 bin_filtered = config.getboolean("dst", "bin_filtered")
 nside = config.getint("dst", "nside")
 BaselineLength = config.getint("dst", "BaselineLength")
-gmres_iterations = config.getint("dst", "gmres_iterations")
 gmres_residual = config.getfloat("dst", "gmres_residual")
+gmres_iterations = config.getint("dst", "gmres_iterations")
 scan_gal_input_map = config.get("dst", "scan_gal_input_map")
 
 folder = "dst_out_%s_%d/" % (os.path.basename(input_filename).split('.')[0], nside)
@@ -63,7 +63,7 @@ if comm.MyPID == 0:
 
 # define data range
 i_from = 0 
-length = len(h5py.File(input_filename, mode='r')['data'])
+length = len(h5py.File(input_filename, mode='r')['data'])/10
 # must be a multiple of baseline length
 length /= BaselineLength
 length *= BaselineLength
@@ -97,13 +97,21 @@ for pol, comps in zip([False, True], ["T", "QU"]):
             comm.create_custom_global_map("bas", 2*NumBaselines)
 
         comm.create_global_map("pix", npix)
-        comm.create_local_map("pix", np.unique(pix).tolist())
+        glob_pix = np.unique(pix).tolist()
+        comm.create_local_map("pix", glob_pix)
+
+        l.info("Creating pixel dict")
+        pix_dict = {}
+        for i in range(len(glob_pix)):
+             pix_dict[glob_pix[i]] = comm.maps["loc_pix"].LID(glob_pix[i])
 
         l.info("Setting pixels local")
         with tm.TimeMonitor("Set pixels local"):
+            l.info("Total pixels %d" % len(pix))
             for i in range(len(pix)):
-                pix[i] = comm.maps["loc_pix"].LID(pix[i])
+                pix[i] = pix_dict[pix[i]] 
 
+        l.info("Hitmap")
         hits_glob = create_hitmap(pix, comm)
         MPIwrite(folder + "hits.bin", hits_glob.array, comm)
 
@@ -117,6 +125,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         # create binned maps -> signal removed streams -> RHS
         with tm.TimeMonitor("Create RHS"):
+            l.info("Create RHS")
             if pol:
                 umap_local = Epetra.Vector(comm.maps["loc_pix"])
                 umap_glob = Epetra.Vector(comm.maps["pix"])
@@ -139,13 +148,16 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                     MPIwrite(folder + "binnedfU.bin", umap_glob.array, comm)
                 #/ bin filtered data
 
+                l.info("Bin maps")
                 bin_map(pix, data['Q']*data['q_channel_w']['Q'] + data['U']*data['u_channel_w']['Q'], tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=True)
                 bin_map(pix, data['Q']*data['q_channel_w']['U'] + data['U']*data['u_channel_w']['U'], umap_local, umap_glob, hits_glob, comm, broadcast_locally=True)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
                 umap_glob[hits_glob == 0] = hp.UNSEEN
+                l.info("Write maps")
                 MPIwrite(folder + "binnedQ.bin", tmap_glob.array, comm)
                 MPIwrite(folder + "binnedU.bin", umap_glob.array, comm)
 
+                l.info("Signal remove")
                 signal_removed = {
                 'Q' : np.zeros(len(data['Q']), dtype=np.double),
                 'U' : np.zeros(len(data['U']), dtype=np.double),
@@ -157,8 +169,10 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 assert len(BaselineLengths) == len(RHS.array[0][NumBaselines:])
                 accumulate(signal_removed['U'], BaselineLengths, RHS.array[0][NumBaselines:])
             else:
+                l.info("Bin maps")
                 bin_map(pix, data['T'], tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=True)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
+                l.info("Write maps")
                 MPIwrite(folder + "binned.bin", tmap_glob.array, comm)
 
                 l.info("Remove signal")

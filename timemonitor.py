@@ -1,5 +1,6 @@
 import timeit
 from collections import OrderedDict
+import logging as l
 
 _monitors = None
 _format = "%-20s : %.3f s\n"

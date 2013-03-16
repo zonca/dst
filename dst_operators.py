@@ -9,13 +9,16 @@ def bin_map(pix, tod, tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=
 
     tmap_local[:] = 0
     tmap_glob[:] = 0
+    l.info("bin_map: bincount")
     tmap_local[:] = np.bincount(pix, weights=tod)
 
+    l.info("bin_map: loc 2 glob")
     comm.pix_local_to_global(tmap_local, tmap_glob)
     tmap_glob[hits_glob != 0] /= hits_glob[hits_glob != 0]
 
     if broadcast_locally:
-            comm.pix_global_to_local(tmap_glob, tmap_local)
+        l.info("bin_map: glob 2 loc")
+        comm.pix_global_to_local(tmap_glob, tmap_local)
 
 class TDestripeOperator(Epetra.Operator):
     """Temperature only destriping
