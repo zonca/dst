@@ -82,7 +82,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         # replace the measured signal with a simulated signal
         if scan_gal_input_map:
-            gal_input_map = gal2eq(hp.read_map("test_rot_map.fits", [0,1,2]))
+            gal_input_map = gal2eq(hp.read_map(scan_gal_input_map, [0,1,2]))
             if pol:
                 data['Q'] = gal_input_map[1][pix] * data["q_channel_w"]['Q'] + gal_input_map[2][pix] *  data["q_channel_w"]['U']
                 data['U'] = gal_input_map[1][pix] * data["u_channel_w"]['Q'] + gal_input_map[2][pix] *  data["u_channel_w"]['U']
