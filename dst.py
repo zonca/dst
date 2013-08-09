@@ -42,7 +42,7 @@ mask_filename = config.get("dst", "mask_filename")
 sampling_frequency = config.getfloat("dst", "sampling_frequency")
 bin_filtered = config.getboolean("dst", "bin_filtered")
 nside = config.getint("dst", "nside")
-BaselineLength = config.getint("dst", "BaselineLength")
+baseline_length = config.getint("dst", "baseline_length")
 gmres_residual = config.getfloat("dst", "gmres_residual")
 gmres_iterations = config.getint("dst", "gmres_iterations")
 scan_gal_input_map = config.get("dst", "scan_gal_input_map")
@@ -66,19 +66,19 @@ if comm.MyPID == 0:
 i_from = 0 
 length = len(h5py.File(input_filename, mode='r')['data'])/100
 # must be a multiple of baseline length
-length /= BaselineLength
-length *= BaselineLength
-comm.create_global_map("bas", length/BaselineLength)
+length /= baseline_length
+length *= baseline_length
+comm.create_global_map("bas", length/baseline_length)
 
 # temperature and polarization done in 2 different runs
 for pol, comps in zip([False, True], ["T", "QU"]):
     with tm.TimeMonitor("Total"):
         with tm.TimeMonitor("Read input data"):
             # read data, pixels and baseline lengths in numpy arrays from hdf5 files
-            pix, data, BaselineLengths = read_data(input_filename, 
-                                                   i_from + comm.maps["bas"].MinMyGID()*BaselineLength, 
-                                                   i_from + (comm.maps["bas"].MaxMyGID()+ 1)*BaselineLength, 
-                                                   nside, BaselineLength, comm, pol=pol, maskdestripe=mask_filename)
+            pix, data, baseline_lengths = read_data(input_filename, 
+                                                   i_from + comm.maps["bas"].MinMyGID()*baseline_length, 
+                                                   i_from + (comm.maps["bas"].MaxMyGID()+ 1)*baseline_length, 
+                                                   nside, baseline_length, comm, pol=pol, maskdestripe=mask_filename)
 
         # replace the measured signal with a simulated signal
         if scan_gal_input_map:
@@ -91,11 +91,11 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         l.info("Proc %d: Num Baselines %d per channel" % (comm.MyPID, comm.maps["bas"].NumMyElements()))
 
-        NumBaselines = comm.maps["bas"].NumMyElements()
+        num_baselines = comm.maps["bas"].NumMyElements()
 
         if pol:
             # baselines for q and u channels
-            comm.create_custom_global_map("bas", 2*NumBaselines)
+            comm.create_custom_global_map("bas", 2*num_baselines)
 
         comm.create_global_map("pix", npix)
         glob_pix = np.unique(pix).tolist()
@@ -168,10 +168,10 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 except exceptions.ValueError:
                     signalremove(signal_removed['Q'], signal_removed['U'], data['Q'].byteswap().newbyteorder(), data['U'].byteswap().newbyteorder(), tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
 
-                assert len(BaselineLengths) == len(RHS.array[0][:NumBaselines])
-                accumulate(signal_removed['Q'], BaselineLengths, RHS.array[0][:NumBaselines])
-                assert len(BaselineLengths) == len(RHS.array[0][NumBaselines:])
-                accumulate(signal_removed['U'], BaselineLengths, RHS.array[0][NumBaselines:])
+                assert len(baseline_lengths) == len(RHS.array[0][:num_baselines])
+                accumulate(signal_removed['Q'], baseline_lengths, RHS.array[0][:num_baselines])
+                assert len(baseline_lengths) == len(RHS.array[0][num_baselines:])
+                accumulate(signal_removed['U'], baseline_lengths, RHS.array[0][num_baselines:])
             else:
                 l.info("Bin maps")
                 bin_map(pix, data['T'], tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=True)
@@ -187,17 +187,17 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                     signalremovet(signal_removed, data['T'].byteswap().newbyteorder(), tmap_local.array, pix)
 
                 l.info("Accumulate")
-                accumulate(signal_removed, BaselineLengths, RHS.array[0])
+                accumulate(signal_removed, baseline_lengths, RHS.array[0])
 
         l.info("Create destripe operator")
         # Create the operator objects that provide the left hand side of the destriping equation
         if pol:
-            DOp = QUDestripeOperator(pix, tmap_local, tmap_glob, umap_local, umap_glob, hits_glob, BaselineLengths, data, comm, NumBaselines)
+            DOp = QUDestripeOperator(pix, tmap_local, tmap_glob, umap_local, umap_glob, hits_glob, baseline_lengths, data, comm, num_baselines)
         else:
-            DOp = TDestripeOperator(pix, tmap_local, tmap_glob, hits_glob, BaselineLengths, comm)
+            DOp = TDestripeOperator(pix, tmap_local, tmap_glob, hits_glob, baseline_lengths, comm)
 
         # Create the preconditioning operator
-        PrecOp = PrecOperator(BaselineLengths, comm)
+        PrecOp = PrecOperator(baseline_lengths, comm)
 
         # Aggregate the Destriping Operator, first guess and RHS in Linear Problem object
         LinProb = Epetra.LinearProblem(DOp, baselines, RHS)
@@ -212,11 +212,11 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         with tm.TimeMonitor("After destriping"):
             if pol:
-                MPIwrite(folder + "baselinesQ.bin", baselines.array[0][:NumBaselines], comm)
-                MPIwrite(folder + "baselinesU.bin", baselines.array[0][NumBaselines:], comm)
+                MPIwrite(folder + "baselinesQ.bin", baselines.array[0][:num_baselines], comm)
+                MPIwrite(folder + "baselinesU.bin", baselines.array[0][num_baselines:], comm)
 
-                data['Q'] -= np.repeat(baselines.array[0][:NumBaselines], BaselineLengths)
-                data['U'] -= np.repeat(baselines.array[0][NumBaselines:], BaselineLengths)
+                data['Q'] -= np.repeat(baselines.array[0][:num_baselines], baseline_lengths)
+                data['U'] -= np.repeat(baselines.array[0][num_baselines:], baseline_lengths)
                 bin_map(pix, data['Q']*data['q_channel_w']['Q'] + data['U']*data['u_channel_w']['Q'], tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=False)
                 bin_map(pix, data['Q']*data['q_channel_w']['U'] + data['U']*data['u_channel_w']['U'], umap_local, umap_glob, hits_glob, comm, broadcast_locally=False)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
@@ -225,7 +225,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 MPIwrite(folder + "mapU.bin", umap_glob.array, comm)
             else:
                 MPIwrite(folder + "baselines.bin", baselines.array[0], comm)
-                bin_map(pix, data['T'] - np.repeat(baselines.array[0], BaselineLengths), tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=False)
+                bin_map(pix, data['T'] - np.repeat(baselines.array[0], baseline_lengths), tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=False)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
                 MPIwrite(folder + "map.bin", tmap_glob.array, comm)
 
