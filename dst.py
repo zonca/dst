@@ -53,8 +53,11 @@ if max_data_samples:
 else:
     max_data_samples = None
 
-folder = "dst_out_%s_%d/" % (os.path.basename(input_filename).split('.')[0], nside)
+folder = "dst_out_%s_%d_gaindrift/" % (os.path.basename(input_filename).split('.')[0], nside)
 npix = hp.nside2npix(nside)
+
+def gain_drift_model(hour):
+    return np.sin(2*np.pi * hour / 24 - 2*np.pi/24*6)*.05+1
 
 # create the communicator object
 comm = CommMetadata()
@@ -85,6 +88,13 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                                                    i_from + comm.maps["bas"].MinMyGID()*baseline_length, 
                                                    i_from + (comm.maps["bas"].MaxMyGID()+ 1)*baseline_length, 
                                                    nside, baseline_length, comm, pol=pol, maskdestripe=mask_filename)
+
+            # gain drift
+            for tqu in "TQU":
+                try:
+                    data[tqu] *= gain_drift_model(data["TIME"])
+                except exceptions.KeyError:
+                    pass
 
         # replace the measured signal with a simulated signal
         if scan_gal_input_map:

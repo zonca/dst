@@ -42,6 +42,8 @@ def read_data(filename, i_from, i_to, nside, BaselineLength, comm, pol=False, ma
     else:
         d = {'T':data['TEMP'].copy()}
 
+    d['TIME'] = data['TIME'].copy()
+
     return pix, d, BaselineLengths
 
 def MPIwrite(filename, a, comm):
