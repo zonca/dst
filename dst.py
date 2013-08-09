@@ -57,7 +57,7 @@ folder = "dst_out_%s_%d_gaindrift/" % (os.path.basename(input_filename).split('.
 npix = hp.nside2npix(nside)
 
 def gain_drift_model(hour):
-    return np.sin(2*np.pi * hour / 24 - 2*np.pi/24*6)*.05+1
+    return np.sin(2*np.pi * hour / 24 - 2*np.pi/24*6)*.1+1
 
 # create the communicator object
 comm = CommMetadata()
@@ -92,7 +92,9 @@ for pol, comps in zip([False, True], ["T", "QU"]):
             # gain drift
             for tqu in "TQU":
                 try:
-                    data[tqu] *= gain_drift_model(data["TIME"])
+                    hour = data["TIME"]*24 % 24  + 9
+                    hour[hour > 24] -= 24
+                    data[tqu] *= gain_drift_model(hour)
                 except exceptions.KeyError:
                     pass
 
