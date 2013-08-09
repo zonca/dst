@@ -42,10 +42,16 @@ mask_filename = config.get("dst", "mask_filename")
 sampling_frequency = config.getfloat("dst", "sampling_frequency")
 bin_filtered = config.getboolean("dst", "bin_filtered")
 nside = config.getint("dst", "nside")
+max_data_samples = config.get("dst", "max_data_samples")
 baseline_length = config.getint("dst", "baseline_length")
 gmres_residual = config.getfloat("dst", "gmres_residual")
 gmres_iterations = config.getint("dst", "gmres_iterations")
 scan_gal_input_map = config.get("dst", "scan_gal_input_map")
+
+if max_data_samples:
+    max_data_samples = int(max_data_samples)
+else:
+    max_data_samples = None
 
 folder = "dst_out_%s_%d/" % (os.path.basename(input_filename).split('.')[0], nside)
 npix = hp.nside2npix(nside)
@@ -64,7 +70,7 @@ if comm.MyPID == 0:
 
 # define data range
 i_from = 0 
-length = len(h5py.File(input_filename, mode='r')['data'])/100
+length = max_data_samples or len(h5py.File(input_filename, mode='r')['data'])
 # must be a multiple of baseline length
 length /= baseline_length
 length *= baseline_length
