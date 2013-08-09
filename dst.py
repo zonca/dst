@@ -165,7 +165,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 }
                 try:
                     signalremove(signal_removed['Q'], signal_removed['U'], data['Q'], data['U'], tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
-                except exceptions.ValueError:
+                except exceptions.ValueError: # byteswap in case input h5 has wrong endianness
                     signalremove(signal_removed['Q'], signal_removed['U'], data['Q'].byteswap().newbyteorder(), data['U'].byteswap().newbyteorder(), tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
 
                 assert len(baseline_lengths) == len(RHS.array[0][:num_baselines])
@@ -183,7 +183,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 signal_removed = np.zeros(len(data['T']), dtype=np.double)
                 try:
                     signalremovet(signal_removed, data['T'], tmap_local.array, pix)
-                except exceptions.ValueError:
+                except exceptions.ValueError: # byteswap in case input h5 has wrong endianness
                     signalremovet(signal_removed, data['T'].byteswap().newbyteorder(), tmap_local.array, pix)
 
                 l.info("Accumulate")
