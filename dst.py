@@ -18,8 +18,9 @@ import h5py
 import healpy as hp
 from PyTrilinos import Epetra, AztecOO
 import logging as l
+import exceptions
 l.basicConfig(format = "%(asctime)-15s - %(levelname)s:%(name)s:%(message)s",
-              level = l.DEBUG)
+              level = l.WARNING)
 
 from dst_operators import bin_map, TDestripeOperator, QUDestripeOperator, PrecOperator, CommMetadata
 from utils import gal2eq, create_hitmap
@@ -63,7 +64,7 @@ if comm.MyPID == 0:
 
 # define data range
 i_from = 0 
-length = len(h5py.File(input_filename, mode='r')['data'])/10
+length = len(h5py.File(input_filename, mode='r')['data'])/100
 # must be a multiple of baseline length
 length /= BaselineLength
 length *= BaselineLength
@@ -162,7 +163,10 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 'Q' : np.zeros(len(data['Q']), dtype=np.double),
                 'U' : np.zeros(len(data['U']), dtype=np.double),
                 }
-                signalremove(signal_removed['Q'], signal_removed['U'], data['Q'], data['U'], tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
+                try:
+                    signalremove(signal_removed['Q'], signal_removed['U'], data['Q'], data['U'], tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
+                except exceptions.ValueError:
+                    signalremove(signal_removed['Q'], signal_removed['U'], data['Q'].byteswap().newbyteorder(), data['U'].byteswap().newbyteorder(), tmap_local.array, umap_local.array, data['q_channel_w']['Q'], data['q_channel_w']['U'], data['u_channel_w']['Q'], data['u_channel_w']['U'], pix)
 
                 assert len(BaselineLengths) == len(RHS.array[0][:NumBaselines])
                 accumulate(signal_removed['Q'], BaselineLengths, RHS.array[0][:NumBaselines])
@@ -177,7 +181,10 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
                 l.info("Remove signal")
                 signal_removed = np.zeros(len(data['T']), dtype=np.double)
-                signalremovet(signal_removed, data['T'], tmap_local.array, pix)
+                try:
+                    signalremovet(signal_removed, data['T'], tmap_local.array, pix)
+                except exceptions.ValueError:
+                    signalremovet(signal_removed, data['T'].byteswap().newbyteorder(), tmap_local.array, pix)
 
                 l.info("Accumulate")
                 accumulate(signal_removed, BaselineLengths, RHS.array[0])
