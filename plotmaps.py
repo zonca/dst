@@ -15,10 +15,15 @@ hp.write_map(folder + "hits.fits", hits)
 comps = ['','Q','U']
 binned = [hp.ma(np.array(np.memmap(folder + "binned%s.bin" % comp, dtype=np.double))) for comp in comps]
 m = [hp.ma(np.array(np.memmap(folder + "map%s.bin" % comp, dtype=np.double))) for comp in comps]
-binnedf = [binned[0].copy()]
-binnedf += [hp.ma(np.array(np.memmap(folder + "binnedf%s.bin" % comp, dtype=np.double))) for comp in comps[1:]]
 baselines = [bb-mm for bb,mm in zip(binned, m)]
-mapcombs = [(binned, 'bin'),  (m, 'destriped'), (baselines, 'baselines'), (binnedf, 'filtbin')]
+mapcombs = [(binned, 'bin'),  (m, 'destriped'), (baselines, 'baselines')]
+
+try:
+    binnedf = [binned[0].copy()]
+    binnedf += [hp.ma(np.array(np.memmap(folder + "binnedf%s.bin" % comp, dtype=np.double))) for comp in comps[1:]]
+    mapcombs.append((binnedf, 'filtbin'))
+except:
+    pass
 
 hp.mollview(hits, unit='hitcount',xsize=2000)
 plt.savefig(folder + "%s_hits.png" % (ch))
