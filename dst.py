@@ -53,11 +53,19 @@ if max_data_samples:
 else:
     max_data_samples = None
 
-folder = "dst_out_%s_%d_gaindrift/" % (os.path.basename(input_filename).split('.')[0], nside)
-npix = hp.nside2npix(nside)
+def create_peak(model_azimuth, position, std, max):
+    return (mlab.normpdf(model_azimuth, np.radians(position), std) / \
+            mlab.normpdf([np.radians(position)], np.radians(position), std))*max
 
-def gain_drift_model(hour):
-    return np.sin(2*np.pi * hour / 24 - 2*np.pi/24*6)*.1+1
+folder = "dst_out_%s_%d_spinsync/" % (os.path.basename(input_filename).split('.')[0], nside)
+npix = hp.nside2npix(nside)
+import matplotlib.mlab as mlab
+def spinsync_model(hour):
+    model_azimuth = 2 * np.pi * 3600/70. * hour % (2*np.pi)
+    std_beam = np.radians(40/60.)*np.sqrt(8*np.log(2)) # beam std
+    large_peak = create_peak(model_azimuth, 30, 2*std_beam, 1e-2)
+    small_peak = create_peak(model_azimuth, 30+100, 2*std_beam, .5e-2)
+    return large_peak + small_peak
 
 # create the communicator object
 comm = CommMetadata()
@@ -94,7 +102,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 try:
                     hour = data["TIME"]*24 % 24  + 9
                     hour[hour > 24] -= 24
-                    data[tqu] *= gain_drift_model(hour)
+                    data[tqu] += spinsync_model(hour)
                 except exceptions.KeyError:
                     pass
 
