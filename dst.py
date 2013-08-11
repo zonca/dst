@@ -63,7 +63,7 @@ if output_tag:
     folder += "_" + output_tag
 folder += "/"
 
-add_spinsync = False
+add_spinsync = True
 
 npix = hp.nside2npix(nside)
 import matplotlib.mlab as mlab
@@ -104,16 +104,6 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                                                    i_from + (comm.maps["bas"].MaxMyGID()+ 1)*baseline_length, 
                                                    nside, baseline_length, comm, pol=pol, maskdestripe=mask_filename)
 
-            # spin sync effect
-            if add_spinsync:
-                for tqu in "TQU":
-                    try:
-                        hour = data["TIME"]*24 % 24  + 9
-                        hour[hour > 24] -= 24
-                        data[tqu] += spinsync_model(hour)
-                    except exceptions.KeyError:
-                        pass
-
         # replace the measured signal with a simulated signal
         if scan_gal_input_map:
             gal_input_map = [mm/1e3 for mm in gal2eq(hp.ud_grade(hp.read_map(scan_gal_input_map, [0,1,2]), nside))]
@@ -122,6 +112,17 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 data['U'] = (gal_input_map[1][pix] * data["u_channel_w"]['Q'] + gal_input_map[2][pix] *  data["u_channel_w"]['U']).astype(np.float32)
             else:
                 data['T'] = gal_input_map[0][pix].astype(np.float32)
+
+        # spin sync effect
+        if add_spinsync:
+            for tqu in "TQU":
+                try:
+                    hour = data["TIME"]*24 % 24  + 9
+                    hour[hour > 24] -= 24
+                    data[tqu] += spinsync_model(hour)
+                except exceptions.KeyError:
+                    pass
+
 
         l.info("Proc %d: Num Baselines %d per channel" % (comm.MyPID, comm.maps["bas"].NumMyElements()))
 
