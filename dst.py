@@ -47,6 +47,7 @@ baseline_length = config.getint("dst", "baseline_length")
 gmres_residual = config.getfloat("dst", "gmres_residual")
 gmres_iterations = config.getint("dst", "gmres_iterations")
 scan_gal_input_map = config.get("dst", "scan_gal_input_map")
+output_tag = config.get("dst", "output_tag")
 
 if max_data_samples:
     max_data_samples = int(max_data_samples)
@@ -57,7 +58,11 @@ def create_peak(model_azimuth, position, std, max):
     return (mlab.normpdf(model_azimuth, np.radians(position), std) / \
             mlab.normpdf([np.radians(position)], np.radians(position), std))*max
 
-folder = "dst_out_%s_%d_spinsync/" % (os.path.basename(input_filename).split('.')[0], nside)
+folder = "dst_out_%s_%d" % (os.path.basename(input_filename).split('.')[0], nside)
+if output_tag:
+    folder += "_" + output_tag
+folder += "/"
+
 npix = hp.nside2npix(nside)
 import matplotlib.mlab as mlab
 def spinsync_model(hour):
