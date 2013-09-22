@@ -63,16 +63,21 @@ if output_tag:
     folder += "_" + output_tag
 folder += "/"
 
-add_spinsync = True
+add_spinsync = False
 
 npix = hp.nside2npix(nside)
 import matplotlib.mlab as mlab
+
 def spinsync_model(hour):
     model_azimuth = 2 * np.pi * 3600/70. * hour % (2*np.pi)
     std_beam = np.radians(40/60.)*np.sqrt(8*np.log(2)) # beam std
     large_peak = create_peak(model_azimuth, 30, 2*std_beam, 1e-2)
     small_peak = create_peak(model_azimuth, 30+100, 2*std_beam, .5e-2)
     return large_peak + small_peak
+
+add_gaindrift = True
+def gain_drift_model(hour):
+    return np.sin(2*np.pi * hour / 24 - 2*np.pi/24*6)*.1+1
 
 # create the communicator object
 comm = CommMetadata()
@@ -113,16 +118,23 @@ for pol, comps in zip([False, True], ["T", "QU"]):
             else:
                 data['T'] = gal_input_map[0][pix].astype(np.float32)
 
+        hour = data["TIME"]*24 % 24  + 9
+        hour[hour > 24] -= 24
+
         # spin sync effect
         if add_spinsync:
             for tqu in "TQU":
                 try:
-                    hour = data["TIME"]*24 % 24  + 9
-                    hour[hour > 24] -= 24
                     data[tqu] += spinsync_model(hour)
                 except exceptions.KeyError:
                     pass
 
+        if add_gaindrift:
+            for tqu in "TQU":
+                try:
+                    data[tqu] *= gain_drift_model(hour)
+                except exceptions.KeyError:
+                    pass
 
         l.info("Proc %d: Num Baselines %d per channel" % (comm.MyPID, comm.maps["bas"].NumMyElements()))
 
