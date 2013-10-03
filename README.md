@@ -13,7 +13,7 @@ dst: python parallel destriper
 * download the package from github
 * run:
 
-    python setup.py build_ext -i #builds cython extensions in place
+        python setup.py build_ext -i #builds cython extensions in place
 
 ## run
 
@@ -21,11 +21,11 @@ dst: python parallel destriper
   and copy inside the `h5/` folder
 * try running the destriping serially:
 
-    python dst.py ch6_256.cfg
+        python dst.py ch6_256.cfg
 
 * try running in parallel:
 
-    mpirun -np 3 python dst.py ch6_256.cfg
+        mpirun -np 3 python dst.py ch6_256.cfg
 
 ## input data format
 
