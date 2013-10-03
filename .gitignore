@@ -1,5 +1,45 @@
-ipython*
-*.c
+*.py[cod]
+
+# C extensions
 *.so
-*.pyc
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+__pycache__
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+
+# Images
+*.png
+*.jpg
+*.gif
+
+# Data
 *.fits
+*.h5
+*.pkl
+*.npy
+
+# Temp files
+*.swp
+ipython_log*
+
+dst_out*
