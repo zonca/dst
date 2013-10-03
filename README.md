@@ -41,7 +41,7 @@ see comments in the example configuration file `ch6_256.cfg`
 
 ## related scientific publication
 
-Scientific paper: "Destriping CMB polarimeter data", http://
+Scientific paper: "Destriping CMB polarimeter data", http://arxiv.org/abs/1309.5609
 
 Destriped maps from the B-Machine 40GHz polarimeter are available on
 figshare at: http://dx.doi.org/10.6084/m9.figshare.644507
