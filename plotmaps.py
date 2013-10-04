@@ -8,7 +8,6 @@ lim = { '': {'bin':20, 'destriped':20, 'baselines':10, 'filtbin':1},
 lim['U'] = lim['Q']
 smooth = False
 maps = {}
-ch = 6
 folder = sys.argv[1] + "/"
 hits = np.array(np.memmap(folder + "hits.bin",dtype=np.double))
 hp.write_map(folder + "hits.fits", hits)
@@ -26,7 +25,7 @@ except:
     pass
 
 hp.mollview(hits, unit='hitcount',xsize=2000)
-plt.savefig(folder + "%s_hits.png" % (ch))
+plt.savefig(folder + "hits.png")
 
 for iqumap, name in mapcombs:
     for comp, what in zip(comps, iqumap):
