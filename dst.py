@@ -31,7 +31,7 @@ from signalremove import signalremove, signalremovet
 # read configuration
 import sys
 from ConfigParser import SafeConfigParser
-config = SafeConfigParser()
+config = SafeConfigParser(dict(output_tag="", nside=256, max_data_samples=None, scan_gal_input_map=None, bin_filetered=False))
 
 if len(sys.argv) != 2:
     l.error("Usage: mpirun -np 3 python dst.py ch6_256.cfg")
@@ -47,13 +47,19 @@ baseline_length = config.getint("dst", "baseline_length")
 gmres_residual = config.getfloat("dst", "gmres_residual")
 gmres_iterations = config.getint("dst", "gmres_iterations")
 scan_gal_input_map = config.get("dst", "scan_gal_input_map")
+output_tag = config.get("dst", "output_tag")
 
 if max_data_samples:
     max_data_samples = int(max_data_samples)
 else:
     max_data_samples = None
 
-folder = "dst_out_%s_%d/" % (os.path.basename(input_filename).split('.')[0], nside)
+folder_components = ["dst", "out", os.path.basename(input_filename).split('.')[0]]
+if output_tag:
+    folder_components.append(output_tag)
+folder_components.append(str(nside))
+folder = "_".join(folder_components) + "/"
+
 npix = hp.nside2npix(nside)
 
 # create the communicator object
