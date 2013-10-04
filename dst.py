@@ -24,7 +24,7 @@ l.basicConfig(format = "%(asctime)-15s - %(levelname)s:%(name)s:%(message)s",
 
 from dst_operators import bin_map, TDestripeOperator, QUDestripeOperator, PrecOperator, CommMetadata
 from utils import gal2eq, create_hitmap
-from dst_io import read_data, MPIwrite
+from dst_io import read_data, MPIwriter
 import timemonitor as tm
 from signalremove import signalremove, signalremovet
 
@@ -64,6 +64,8 @@ npix = hp.nside2npix(nside)
 
 # create the communicator object
 comm = CommMetadata()
+
+mpi_writer = MPIwriter(folder, comm)
 
 tm.set_mypid(comm.MyPID)
 
@@ -126,7 +128,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         l.info("Hitmap")
         hits_glob = create_hitmap(pix, comm)
-        MPIwrite(folder + "hits.bin", hits_glob.array, comm)
+        mpi_writer.write("hits.bin", hits_glob.array)
 
         # all Epetra objects are distributed over the available procs
         tmap_local = Epetra.Vector(comm.maps["loc_pix"])
@@ -157,8 +159,8 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                     bin_map(pix, (dataf['Q'])*data['q_channel_w']['U'] + (dataf['U'])*data['u_channel_w']['U'], umap_local, umap_glob, hits_glob, comm, broadcast_locally=True)
                     tmap_glob[hits_glob == 0] = hp.UNSEEN
                     umap_glob[hits_glob == 0] = hp.UNSEEN
-                    MPIwrite(folder + "binnedfQ.bin", tmap_glob.array, comm)
-                    MPIwrite(folder + "binnedfU.bin", umap_glob.array, comm)
+                    mpi_writer.write("binnedfQ.bin", tmap_glob.array)
+                    mpi_writer.write("binnedfU.bin", umap_glob.array)
                 #/ bin filtered data
 
                 l.info("Bin maps")
@@ -167,8 +169,8 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
                 umap_glob[hits_glob == 0] = hp.UNSEEN
                 l.info("Write maps")
-                MPIwrite(folder + "binnedQ.bin", tmap_glob.array, comm)
-                MPIwrite(folder + "binnedU.bin", umap_glob.array, comm)
+                mpi_writer.write("binnedQ.bin", tmap_glob.array)
+                mpi_writer.write("binnedU.bin", umap_glob.array)
 
                 l.info("Signal remove")
                 signal_removed = {
@@ -189,7 +191,7 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 bin_map(pix, data['T'], tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=True)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
                 l.info("Write maps")
-                MPIwrite(folder + "binned.bin", tmap_glob.array, comm)
+                mpi_writer.write("binned.bin", tmap_glob.array)
 
                 l.info("Remove signal")
                 signal_removed = np.zeros(len(data['T']), dtype=np.double)
@@ -224,8 +226,8 @@ for pol, comps in zip([False, True], ["T", "QU"]):
 
         with tm.TimeMonitor("After destriping"):
             if pol:
-                MPIwrite(folder + "baselinesQ.bin", baselines.array[0][:num_baselines], comm)
-                MPIwrite(folder + "baselinesU.bin", baselines.array[0][num_baselines:], comm)
+                mpi_writer.write("baselinesQ.bin", baselines.array[0][:num_baselines])
+                mpi_writer.write("baselinesU.bin", baselines.array[0][num_baselines:])
 
                 data['Q'] -= np.repeat(baselines.array[0][:num_baselines], baseline_lengths)
                 data['U'] -= np.repeat(baselines.array[0][num_baselines:], baseline_lengths)
@@ -233,13 +235,13 @@ for pol, comps in zip([False, True], ["T", "QU"]):
                 bin_map(pix, data['Q']*data['q_channel_w']['U'] + data['U']*data['u_channel_w']['U'], umap_local, umap_glob, hits_glob, comm, broadcast_locally=False)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
                 umap_glob[hits_glob == 0] = hp.UNSEEN
-                MPIwrite(folder + "mapQ.bin", tmap_glob.array, comm)
-                MPIwrite(folder + "mapU.bin", umap_glob.array, comm)
+                mpi_writer.write("mapQ.bin", tmap_glob.array)
+                mpi_writer.write("mapU.bin", umap_glob.array)
             else:
-                MPIwrite(folder + "baselines.bin", baselines.array[0], comm)
+                mpi_writer.write("baselines.bin", baselines.array[0])
                 bin_map(pix, data['T'] - np.repeat(baselines.array[0], baseline_lengths), tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=False)
                 tmap_glob[hits_glob == 0] = hp.UNSEEN
-                MPIwrite(folder + "map.bin", tmap_glob.array, comm)
+                mpi_writer.write("map.bin", tmap_glob.array)
 
     print tm.summarize()
     tm.reset()
