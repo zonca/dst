@@ -31,7 +31,7 @@ from signalremove import signalremove, signalremovet
 # read configuration
 import sys
 from ConfigParser import SafeConfigParser
-config = SafeConfigParser(dict(output_tag="", nside=256, max_data_samples=None, scan_gal_input_map=None, bin_filetered=False))
+config = SafeConfigParser(dict(output_tag="", max_data_samples=None, scan_gal_input_map=None, bin_filetered=False))
 
 if len(sys.argv) != 2:
     l.error("Usage: mpirun -np 3 python dst.py ch6_256.cfg")
@@ -75,6 +75,9 @@ if comm.MyPID == 0:
         os.mkdir(folder)
     except:
         pass
+    # write copy of config file to output folder
+    with open(os.path.join(folder, "config.cfg"), "w") as config_output_file:
+        config.write(config_output_file)
 
 # define data range
 i_from = 0 
