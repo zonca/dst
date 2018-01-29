@@ -20,7 +20,7 @@ from PyTrilinos import Epetra, AztecOO
 import logging as l
 import exceptions
 l.basicConfig(format = "%(asctime)-15s - %(levelname)s:%(name)s:%(message)s",
-              level = l.WARNING)
+              level = l.DEBUG)
 
 from dst_operators import bin_map, TDestripeOperator, QUDestripeOperator, PrecOperator, CommMetadata
 from utils import gal2eq, create_hitmap
