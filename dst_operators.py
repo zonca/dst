@@ -14,7 +14,7 @@ def bin_map(pix, tod, tmap_local, tmap_glob, hits_glob, comm, broadcast_locally=
 
     l.info("bin_map: loc 2 glob")
     comm.pix_local_to_global(tmap_local, tmap_glob)
-    tmap_glob[hits_glob != 0] /= hits_glob[hits_glob != 0]
+    tmap_glob[hits_glob > 0] /= hits_glob[hits_glob > 0]
 
     if broadcast_locally:
         l.info("bin_map: glob 2 loc")

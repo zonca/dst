@@ -33,7 +33,7 @@ def pix2map(pix, tod=None, dividebyhits=True):
 
 def create_hitmap(pix, comm):
     hits=pix2map(pix)
-    hits_local = Epetra.Vector(comm.maps["loc_pix"], hits)
+    hits_local = Epetra.Vector(comm.maps["loc_pix"], hits.astype(np.double))
     hits_glob = Epetra.Vector(comm.maps["pix"])
     comm.pix_local_to_global(hits_local, hits_glob)
     return hits_glob

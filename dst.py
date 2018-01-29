@@ -11,12 +11,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from PyTrilinos import Epetra, AztecOO
 import numpy as np
 import os
 from accumulate import accumulate
 import h5py
 import healpy as hp
-from PyTrilinos import Epetra, AztecOO
 import logging as l
 import exceptions
 l.basicConfig(format = "%(asctime)-15s - %(levelname)s:%(name)s:%(message)s",
